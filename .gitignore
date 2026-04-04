@@ -62,3 +62,4 @@ Python/build
 /build
 **/.venv
 __pycache__
+lib/
