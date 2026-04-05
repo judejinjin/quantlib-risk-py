@@ -116,7 +116,7 @@ if [[ $SKIP_APT -eq 1 ]]; then
 else
     sudo apt-get update -qq
     sudo apt-get install -y \
-        ninja-build g++ cmake libboost-all-dev libssl-dev libgomp1
+        ninja-build g++ cmake libboost-all-dev libssl-dev libgomp1 swig python3-pip
     info "System packages OK"
 fi
 
@@ -124,7 +124,17 @@ fi
 # Step 1 – Git submodules
 # ---------------------------------------------------------------------------
 step "1/9  Git submodules"
-git submodule update --init --recursive
+# Try full submodule update first; if QuantLib's pinned commit is unreachable
+# (force-push / rebase upstream), fall back to the other two submodules and
+# verify QuantLib is already present.
+if ! git submodule update --init --recursive 2>/dev/null; then
+    warn "Full submodule update failed — trying individual submodules"
+    git submodule update --init --recursive -- lib/xad lib/QuantLib-Risks-Cpp
+    if [[ ! -f "$ROOT/lib/QuantLib/CMakeLists.txt" ]]; then
+        die "lib/QuantLib is missing.  Clone it manually, e.g.:\n  git clone --branch v1.33 https://github.com/lballabio/QuantLib.git lib/QuantLib"
+    fi
+    info "lib/QuantLib already present (manually cloned)"
+fi
 info "Submodules OK: lib/QuantLib  lib/xad  lib/QuantLib-Risks-Cpp"
 
 # Optional JIT repos
